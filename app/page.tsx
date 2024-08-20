@@ -2,12 +2,12 @@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { ChevronRight, ChevronDown, Plus } from "lucide-react";
+import { ChevronRight, ChevronDown, Plus, Trash } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from "@/components/ui/collapsible";
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 
@@ -19,13 +19,26 @@ interface Task {
 }
 
 export default function Home() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    const storedTasks = localStorage.getItem('tasks');
+    return storedTasks ? JSON.parse(storedTasks) : [];
+  });
+  const [completedTasks, setCompletedTasks] = useState<Task[]>(() => {
+    const storedCompletedTasks = localStorage.getItem('completedTasks');
+    return storedCompletedTasks ? JSON.parse(storedCompletedTasks) : [];
+  });
   const [isOpen, setIsOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [isAddingTask, setIsAddingTask] = useState(false);
+  const [isHoveringTask, setIsHoveringTask] = useState<number | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Salva as tasks no localStorage sempre que elas mudarem
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+    localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+  }, [tasks, completedTasks]);
 
   useEffect(() => {
     if (isAddingTask && titleInputRef.current) {
@@ -56,13 +69,18 @@ export default function Home() {
         id: Date.now(),
         title: newTaskTitle,
         description: newTaskDescription.trim() !== '' ? newTaskDescription : undefined,
-        completed: false
+        completed: false,
       };
       setTasks([...tasks, newTask]);
       setNewTaskTitle('');
       setNewTaskDescription('');
       setIsAddingTask(false);
     }
+  };
+
+  const handleDeleteTask = (taskId: number) => {
+    setTasks(tasks.filter(task => task.id !== taskId));
+    setCompletedTasks(completedTasks.filter(task => task.id !== taskId));
   };
 
   return (
@@ -108,14 +126,21 @@ export default function Home() {
         <Separator />
 
         {tasks.map(task => (
-          <div key={task.id}>
-            <div className="flex gap-4 mx-4 my-2 items-center">
+          <div
+            key={task.id}
+            onMouseEnter={() => setIsHoveringTask(task.id)}
+            onMouseLeave={() => setIsHoveringTask(null)}
+          >
+            <div className="flex gap-4 mx-4 my-4 items-center">
               <Checkbox
-                className="rounded-full"
+                className="rounded-full border-black/50"
                 checked={task.completed}
                 onCheckedChange={(checked) => handleTaskCompletion(task.id, checked as boolean)}
               />
               <h2 className="truncate">{task.title}</h2>
+              {isHoveringTask === task.id && (
+                <Trash className="text-red-500 my-0 ml-auto cursor-pointer" size={18} onClick={() => handleDeleteTask(task.id)} />
+              )}
             </div>
             {task.description && (
               <div className="mx-4 ml-12 my-2">
@@ -134,20 +159,29 @@ export default function Home() {
             </CollapsibleTrigger>
             <CollapsibleContent>
               {completedTasks.map(task => (
-                <div key={task.id}>
-                  <div className="flex gap-4 mx-4 my-2 items-center">
+                <div
+                  key={task.id}
+                  onMouseEnter={() => setIsHoveringTask(task.id)}
+                  onMouseLeave={() => setIsHoveringTask(null)}
+                >
+                  <div className="flex gap-4 mx-4 my-4 items-center">
                     <Checkbox
                       className="rounded-full"
                       checked={task.completed}
                       onCheckedChange={(checked) => handleTaskCompletion(task.id, checked as boolean)}
                     />
                     <h2 className={`truncate ${task.completed ? 'line-through' : ''}`}>{task.title}</h2>
+                    {isHoveringTask === task.id && (
+                      <Trash className="text-red-500 ml-auto cursor-pointer" size={18} onClick={() => handleDeleteTask(task.id)} />
+
+                    )}
                   </div>
                   {task.description && (
                     <div className="mx-4 ml-12 my-2">
                       <h3 className="text-zinc-500 line-through">{task.description}</h3>
                     </div>
                   )}
+                  <Separator />
                 </div>
               ))}
             </CollapsibleContent>
