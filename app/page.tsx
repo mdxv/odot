@@ -85,7 +85,7 @@ export default function Home() {
 
   return (
     <main className="flex flex-col flex-cols-1 justify-center items-center h-screen">
-      <div className="lg:w-5/12">
+      <div className="lg:w-4/12">
         <div>
           <p className="font-medium">Odot</p>
           <p className="text-muted-foreground">Task management made simple.</p>
